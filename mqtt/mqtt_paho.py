@@ -86,10 +86,10 @@ class mqtt_paho:
         self.client.loop_stop()
 
         if result[0] == 0:
-            print(f"Successfully sent message to topic `{topic}` with QoS 2 and retain flag set")
+            print(f"Successfully Registered books\n\n")
         else:
-            print(f"Failed to send message to topic `{topic}`")
-        time.sleep(1)
+            print(f"Failed to Register books")
+        time.sleep(0.1)
     
     def subscribe_to_topic(self, topic_name):
         if self.client is None:
@@ -137,8 +137,8 @@ class mqtt_paho:
     def extract_book_details(self, message):
         # Regular expressions to match BookCode, IssueDate, and ReturnDate
         book_code_pattern = r"ESE\d{6}"
-        issue_date_pattern = r"IssueDate: (\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})"
-        return_date_pattern = r"ReturnDate: (\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})"
+        issue_date_pattern = r"IssueDate: (\d{2}-\d{2}-\d{4} \d{2}:\d{2}:\d{2})"
+        return_date_pattern = r"ReturnDate: (\d{2}-\d{2}-\d{4} \d{2}:\d{2}:\d{2})"
 
         # Extract details from the message
         book_ids = re.findall(book_code_pattern, message)

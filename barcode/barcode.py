@@ -59,7 +59,7 @@ class barcode:
         # Apply adaptive thresholding to emphasize the barcode
         adaptive_thresh = cv2.adaptiveThreshold(
             enhanced_gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
-            cv2.THRESH_BINARY, 9, 10
+            cv2.THRESH_BINARY, 11, 10
         )
 
         return adaptive_thresh
@@ -105,7 +105,7 @@ class barcode:
             self.new_book_codes = self.detect_and_decode_barcode(frame,self.detected_codes)
 
             if not self.new_book_codes:
-                for angle in range(45,315,45):
+                for angle in range(45,360,45):
                     rotated_frame = self.rotate_image(frame, angle)
                     rotated_code = self.detect_and_decode_barcode(rotated_frame, self.detected_codes)
                     if rotated_code:
@@ -127,9 +127,17 @@ class barcode:
             
             if self.no_detection_frames >= self.no_detection_limit:
                 break
-            
-            if cv2.waitKey(1) & 0xFF == ord('q'):
+            key  = cv2.waitKey(1) & 0xFF
+            if  key == ord('q'):
                 break
+
+            if key == ord('n'):
+                cv2.destroyWindow("Registering Books")
+                print("**************************")
+                print("BOOKS NOT REGISTERED...")
+                print("**************************")
+                return []
+
         
         cv2.destroyWindow("Registering Books")
 
@@ -142,7 +150,7 @@ if __name__ == "__main__":
         bookcode = barcode()
         bookcode.set_no_detection_frames(0)
         bookcode.set_no_detection_limit(1000)
-        cap = cv2.VideoCapture(1)
+        cap = cv2.VideoCapture(cfg.CAMERA_DEVICE)
         books = bookcode.detect_bookcodes(cap)
         print(books)
 

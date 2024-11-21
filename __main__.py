@@ -2,21 +2,23 @@ from identify_face import *
 from mqtt import *
 from barcode import *
 import configurations as cfg
-import json
-import subprocess
 
 
-def enable_autofocus(device_index=0):
-    # Enables autofocus on Linux using v4l2-ctl
-    device_path = f"/dev/video{device_index}"
-    command = f"v4l2-ctl -d {device_path} -c focus_auto=1"
-    subprocess.run(command, shell=True)
+def clean_screen():
+    os.system('clear')
 
-def disable_autofocus(device_index=0):
-    # Disables autofocus on Linux using v4l2-ctl
-    device_path = f"/dev/video{device_index}"
-    command = f"v4l2-ctl -d {device_path} -c focus_auto=0"
-    subprocess.run(command, shell=True)
+
+def print_issued_books(mqtt_object, label):
+    book_code = []
+    sub_msg = mqtt_object.subscribe_to_topic(topic_name=f"{cfg.MAIN_TOPIC}/{label}")
+    if sub_msg != None:
+        book_code, _, return_date = mqtt_object.extract_book_details(sub_msg)
+        if book_code:
+            print("*************")
+            print(f"{label}")
+            print(f"Issued Books: {book_code}")
+            print(f"Return dates: {return_date}")
+            print("*************\n\n")
 
 
 def face_setup(face_recognition_object):
@@ -61,6 +63,7 @@ def main(cap):
     print("[INFO] Press 'r' to register a new face")
 
     prev_label =None
+    run = True
 
     while True:
         ret, frame = cap.read()
@@ -74,12 +77,16 @@ def main(cap):
         cv2.moveWindow("Library system",cfg.LIBRARY_X, cfg.LIBRARY_Y)
         cv2.imshow("Library system", frame)
 
-        if label != "Unkown" and label!=prev_label:
+        if label != "Unkown" and label!=prev_label and run:
 
             person = cv2.imread(os.path.join(cfg.FACE_DATA_PATH, f"{label}.png"))
             cv2.resizeWindow("Person", cfg.PERSON_WIDTH, cfg.PERSON_HEIGHT)
             cv2.moveWindow("Person",cfg.PERSON_X, cfg.PERSON_Y)
             cv2.imshow("Person", person)
+            
+            clean_screen()
+            print_issued_books(mqtt_object, label)
+
             time.sleep(1)
             detected_codes = barcode_object.detect_bookcodes(cap)
 
@@ -87,25 +94,28 @@ def main(cap):
             issue_date = []
             return_date = []
             return_book = []
-            
+
             if detected_codes != []:
-                issuing_date = datetime.now().strftime("%Y-%m-%d %H:%M:%s")  # Current date as Issue Date
-                returning_date = (datetime.now() + timedelta(days=5)).strftime("%Y-%m-%d %H:%M:%s")  # Return Date = 5 days after Issue Date
+                issuing_date = datetime.now().strftime("%d-%m-%Y %H:%M:%s")  # Current date as Issue Date
+                returning_date = (datetime.now() + timedelta(days=5)).strftime("%d-%m-%Y %H:%M:%s")  # Return Date = 5 days after Issue Date
 
                 sub_msg = mqtt_object.subscribe_to_topic(topic_name=f"{cfg.MAIN_TOPIC}/{label}")
                 if sub_msg != None:
                     book_code, issue_date, return_date = mqtt_object.extract_book_details(sub_msg)
                     if book_code:
-                        for book in book_code:
-                            for code in detected_codes:
+                        for code in detected_codes:
+                            for book in book_code:
                                 if book == code:
                                     index = book_code.index(book)
-                                    detected_codes.remove(book)
                                     return_book.append(book)
                                     book_code.pop(index)
                                     issue_date.pop(index)
                                     return_date.pop(index)
                                     break
+                
+                for code in return_book:
+                    index = detected_codes.index(code)
+                    detected_codes.pop(index)
                 
                 for code in detected_codes:
                     if code not in book_code:
@@ -123,6 +133,7 @@ def main(cap):
                 msg = mqtt_object.message_book_code(book_code,issue_date,return_date)
                 mqtt_object.publish_message(topic=f"{cfg.MAIN_TOPIC}/{label}",message=str(msg))
 
+                clean_screen()
                 print("*************")
                 print("Person issued: ", f"{label}")
                 print("*************")
@@ -132,8 +143,8 @@ def main(cap):
                 print("Returned books: ", return_book)
                 print("*************")
             
-            time.sleep(1)
             cv2.destroyWindow("Person")
+            time.sleep(1)
 
         
         # Capture Events
@@ -145,12 +156,13 @@ def main(cap):
                 face_recognition_object.train_recognizer()
         elif key == ord('q'):
             break
+        elif key == ord('u'):
+            run = not run
         
 
 
 if __name__ == "__main__":
     try:
-        # enable_autofocus()
         cap = cv2.VideoCapture(cfg.CAMERA_DEVICE, cv2.CAP_V4L2)
         main(cap)
     
@@ -162,7 +174,6 @@ if __name__ == "__main__":
 
     finally:
         print("Shutting down the server....")
-        # disable_autofocus()
         cap.release()
         cv2.destroyAllWindows()
         

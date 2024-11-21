@@ -2,6 +2,8 @@ from . import cv2
 from . import np
 from . import os
 from . import pickle
+from . import tk
+from . import simpledialog
 
 class face_recog:
     def __init__(self):
@@ -70,14 +72,31 @@ class face_recog:
                 return False
             
         # Save image for training
-        label = input("Enter the SR Number: ")
-        face_path = os.path.join(self.DATA_PATH, f"{label}.png")
-        cv2.imwrite(face_path,face_resized)
-        cv2.imshow("Registered Face", face_resized)
-        print(f"[INFO] New Face Registered as '{label}'")
-        cv2.waitKey(2000) #wait for 200 ms
-        cv2.destroyWindow("Registered Face")
-        return True
+        label = self.get_sr_number_from_gui()
+        
+        if label:
+            face_path = os.path.join(self.DATA_PATH, f"{label}.png")
+            cv2.imwrite(face_path,face_resized)
+            cv2.imshow("Registered Face", face_resized)
+            print(f"[INFO] New Face Registered as '{label}'")
+            cv2.waitKey(2000) #wait for 200 ms
+            cv2.destroyWindow("Registered Face")
+            return True
+        else:
+            print(f"[INFO] No input for label given")
+            return False
+
+    def get_sr_number_from_gui(self):
+        # Function to create the Tkinter GUI and return the input value
+        root = tk.Tk()
+        root.withdraw()  # Hide the main window
+        
+        # Use a simple dialog to ask for the SR Number
+        label = simpledialog.askstring("SR Number", "Please enter the SR Number:", parent=root)
+        
+        root.destroy()  # Close the Tkinter window after input
+        return label
+
     
     def train_recognizer(self):
         if self.DATA_PATH is None:

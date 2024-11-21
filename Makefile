@@ -1,4 +1,4 @@
-.PHONY: setup run clear reset
+.PHONY: setup run clear reset demo
 
 run: setup
 	@python .
@@ -17,3 +17,7 @@ reset: clean
 
 	@echo "Cleaning label Data......"
 	@find "./database/" -type f -name '*.pkl' -exec rm -f {} +
+
+demo: reset
+	@echo "Preparing for demo ...."
+	@cp ./demo/*.png ./identify_face/face_data/
