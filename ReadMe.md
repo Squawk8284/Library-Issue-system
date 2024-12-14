@@ -18,6 +18,7 @@ This project is a library management system that uses face recognition for ident
 - **numpy**: For handling image data
 - **pickle**: For saving and loading the face label map
 - **datetime**: For managing issue and return dates
+- **pyzbar**: For barcode detection
 
 You can install the necessary Python libraries using the following command:
 
